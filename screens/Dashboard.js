@@ -8,9 +8,10 @@ import {
   Platform,
   Image,
   Animated,
+  StatusBar
 } from "react-native";
 import { dummyData, COLORS, SIZES, FONTS, icons, images } from "../constants";
-//import Animated, { Extrapolate } from "react-native-reanimated";
+import { TextButton } from "../components";
 
 const COUNTRIES_ITEM_SIZE = SIZES.width / 3;
 const PLACES_ITEM_SIZE =
@@ -30,6 +31,8 @@ const Dashboard = ({ navigation }) => {
     ...dummyData.countries[0].places,
     { id: -2 },
   ]);
+
+  const [placesScrollPosition, setPlacesScrollPosition] = useState(0);
 
   const renderHeader = () => {
     return (
@@ -96,11 +99,26 @@ const Dashboard = ({ navigation }) => {
         scrollEventThrottle={16}
         decelerationRate={0}
         data={countries}
+        bounces={false}
         keyExtractor={(item) => `${item.id}`}
+        contentContainerStyle={{
+          alignItems: "center",
+        }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: countryScrollX } } }],
           { useNativeDriver: false }
         )}
+        onMomentumScrollEnd={(event) => {
+          //calculate position
+          var position =(event.nativeEvent.contentOffset.x / COUNTRIES_ITEM_SIZE).toFixed(0)
+          //set places
+
+          setPlaces([
+            {id: -1},
+            ...dummyData.countries[position].places,
+            {id: -2}
+          ])
+        }}
         renderItem={({ item, index }) => {
           const opacity = countryScrollX.interpolate({
             inputRange: [
@@ -178,6 +196,12 @@ const Dashboard = ({ navigation }) => {
     );
   };
 
+  const exportButtonHandler = () => {
+    const currentIndex = parseInt(placesScrollPosition, 10) + 1;
+    console.log( places[currentIndex])
+    navigation.navigate("Place", { selectedPlace: places[currentIndex]})
+  }
+
   const renderPlaces = () => {
     return (
       <Animated.FlatList
@@ -191,7 +215,7 @@ const Dashboard = ({ navigation }) => {
         }}
         snapToAlignment="center"
         snapToInterval={
-          Platform.OS === "ios" ? PLACES_ITEM_SIZE + 28 : PLACES_ITEM_SIZE
+          Platform.OS === "ios" ? PLACES_ITEM_SIZE + 28 : PLACES_ITEM_SIZE + 24 // places slider was weird on android, thats why i added + 24
         }
         scrollEventThrottle={16}
         decelerationRate={0}
@@ -200,6 +224,12 @@ const Dashboard = ({ navigation }) => {
           [{ nativeEvent: { contentOffset: { x: placesScrollX } } }],
           { useNativeDriver: false }
         )}
+        onMomentumScrollEnd={(event) => {
+          //calculate position
+            var position = (event.nativeEvent.contentOffset.x / PLACES_ITEM_SIZE).toFixed(0)
+          //set place scroll position
+          setPlacesScrollPosition(position)
+        }}
         renderItem={({ item, index }) => {
           const opacity = placesScrollX.interpolate({
             inputRange: [
@@ -287,13 +317,22 @@ const Dashboard = ({ navigation }) => {
                   <Text
                     style={{
                       marginBottom: SIZES.padding * 2,
-                      textAlign:"center",
+                      textAlign: "center",
                       color: COLORS.white,
                       ...FONTS.body3,
                     }}
                   >
                     {item.description}
                   </Text>
+                  <TextButton
+                    label="Explore"
+                    customContainerStyle={{
+                      position: "absolute",
+                      bottom: -20,
+                      width: 150,
+                    }}
+                    onPress={exportButtonHandler}
+                  />
                 </View>
               </Animated.View>
             );
@@ -304,17 +343,19 @@ const Dashboard = ({ navigation }) => {
   };
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.black }}>
+      <StatusBar backgroundColor={COLORS.black} barStyle="light-content" />
+      {/* {Platform.OS === "android" && ( <View style={{ height: StatusBar.currentHeight }} />)} */}
       {renderHeader()}
       <ScrollView
         contentContainerStyle={{
           paddingBottom: Platform.OS === "ios" ? 40 : 0,
         }}
       >
-        <View style={{ height: 700 }}>
+        <View>
           {/* countries */}
           {renderCountries()}
           {/* places */}
-          <View style={{ height: Platform.OS === "ios" ? 500 : 450 }}>
+          <View style={{ height: Platform.OS === "ios" ? 500 : 550 }}>
             {renderPlaces()}
           </View>
         </View>
